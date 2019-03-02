@@ -1,0 +1,175 @@
+---
+title: "Data608_HW1"
+author: "Olga Shiligin"
+date: "31/01/2019"
+output: html_document
+---
+
+**Principles of Data Visualization and Introduction to ggplot2**
+
+I have provided you with data about the 5,000 fastest growing companies in the US, as compiled by Inc. magazine. lets read this in:
+
+```{r}
+library("ggplot2")
+library("dplyr")
+library("scales")
+data <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module1/Data/inc5000_data.csv", header= TRUE)
+```
+
+And lets preview this data:
+
+```{r}
+head(data)
+```
+
+```{r}
+summary(data)
+```
+
+Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
+
+Rank was treated as integer instead of factor, that is why application of descriptive statistics is meaningless. 
+
+Max. and Min. look reasonable across all variables.
+
+Now I want to check if data contains missing values or duplicates rows.
+
+```{r}
+apply(data, 2, function(x) any(is.na(x)))
+data[duplicated(data),]
+```
+
+Variables "Employees" contains missing values.
+
+Data does not have duplicates rows.
+
+Exploratary information.
+
+```{r}
+
+#  growth rate by industry
+gr_industry<-data %>% 
+  select (Industry,Growth_Rate) %>% 
+  group_by(Industry) %>% 
+  summarise(avg_gr= mean(Growth_Rate)) %>% 
+  arrange(desc(avg_gr))
+head(gr_industry)
+
+#  growth rate by city
+
+gr_city<-data %>% 
+  select (City,Growth_Rate) %>% 
+  group_by(City) %>% 
+  summarise(avg_gr= mean(Growth_Rate)) %>% 
+  arrange(desc(avg_gr))
+head(gr_city)
+
+#  growth rate by state
+
+gr_state<-data %>% 
+  select (State,Growth_Rate) %>% 
+  group_by(State) %>% 
+  summarise(avg_gr= mean(Growth_Rate)) %>% 
+  arrange(desc(avg_gr))
+head(gr_state)
+
+# number of employees by industry
+num_empl<-data %>% 
+  select (Industry,Employees) %>%
+  group_by (Industry) %>% 
+  summarise (total= sum(Employees)) %>% 
+  arrange(desc(total))
+head(num_empl)
+```
+
+
+## Question 1
+
+Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
+
+```{r}
+q1_data<-data %>% 
+  select (Name,State) %>% 
+  group_by(State) %>% 
+  dplyr::summarise(company_count = n_distinct(Name)) %>% 
+  arrange(desc(company_count))
+
+q1<-ggplot(q1_data, aes(x=reorder(State,company_count), y=company_count)) +
+  geom_bar(stat="identity")+
+  geom_col(aes(fill = company_count)) + 
+  geom_point(size=0.5, colour = "steelblue") +
+  scale_fill_gradient2(low = "white", high = "steelblue") + 
+  theme_bw()+
+  coord_flip() + 
+  theme(text = element_text(size = 9, color = "black")) +
+  ggtitle ("Number Of Fastest Growing Companies By State") + ylab("Number of Companies") +
+  theme(axis.title.y=element_blank()) + 
+  theme(legend.position="none")
+
+q1
+```
+
+## Quesiton 2
+
+Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
+
+```{r}
+q2_data<-data %>% 
+  filter (State == "NY")
+
+head(q2_data)
+
+q2_data <- q2_data[complete.cases(q2_data$Industry), ]
+q2_data <- q2_data[complete.cases(q2_data$Employees), ]
+ny_median<-median(q2_data$Employees)
+
+lower <- min(q2_data$Employees)
+upper <- max(q2_data$Employees)
+
+q2_test<-ggplot(q2_data, aes(reorder(Industry, Employees, FUN=median), Employees)) + 
+    geom_boxplot(outlier.shape = NA,  color = "black", fill = "light blue", alpha = 0.5) +
+    scale_y_continuous(trans = log2_trans(), limits = c(lower, upper)) +
+    geom_hline(yintercept = ny_median, color="red") +
+    geom_text(aes(2.5,400,label = "NY: employees median number"), size = 3)+
+    coord_flip() +
+    ggtitle ("NY: Number Of Employess By Industry") + ylab("Number Of Employees")+
+    theme_bw()+
+    theme(axis.title.y=element_blank())+
+    theme(text = element_text(size = 9, color = "black"))
+
+q2_test
+  
+```
+
+## Question 3
+
+Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
+
+```{r}
+q3_data<-data %>% 
+  select (Revenue, Industry, Employees) %>% 
+  group_by(Industry) %>%
+  summarise(total_revenue = sum(Revenue), total_employee = sum(Employees)) %>%
+  mutate(revenue_employee = total_revenue / total_employee/1000) %>% 
+  arrange (revenue_employee)
+
+q3_data <- q3_data[complete.cases(q3_data$Industry), ]
+q3_data <- q3_data[complete.cases(q3_data$total_employee), ]
+
+q3<-ggplot(q3_data, aes(x=reorder(Industry, revenue_employee), y=revenue_employee)) +
+  geom_bar(stat="identity")+
+  theme_bw()+
+  geom_col(aes(fill = revenue_employee)) + 
+  geom_point(size=0.5, colour = "steelblue") +
+  scale_fill_gradient2(low = "white", high = "steelblue") + 
+  coord_flip() + 
+  ggtitle ("Revenue Generated Per Employee By Industry") + ylab("Revenue Per Employee, in thousands") + 
+  theme(legend.position="none") +
+  theme(axis.title.y=element_blank())+
+  theme(text = element_text(size = 8, color = "black"))
+
+q3
+
+```
+
+
