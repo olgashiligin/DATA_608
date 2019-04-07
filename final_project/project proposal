@@ -1,1 +1,22 @@
+Project Proposal
 
+The purpose of the project is to to find signals correlated to increased suicide rates among different cohorts globally.
+
+The following steps will be taken to analyse the suicide rate and possible reasons of it:
+
+- suicide rate by countries;
+- changes of suicide rate over time (peak years, countries with increasing/decreasing suicide rate):
+- typical suicide profile (age, gender, generation);
+- correlation of suicide rate and GDP;
+
+This analysis can be useful in developing suicide prevention measures.
+
+Data Source:
+
+https://www.kaggle.com/russellyates88/suicide-rates-overview-1985-to-2016
+
+Technologies that will be used:
+
+Plotly
+Dash App
+Python
